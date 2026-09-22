@@ -22,3 +22,34 @@
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
 replay_pid*
+
+# Angular / Node
+node_modules/
+dist/
+tmp/
+out-tsc/
+.angular/
+*.tsbuildinfo
+npm-debug.log*
+yarn-error.log*
+.sass-cache/
+connect.lock
+libpeerconnection.log
+testem.log
+.env
+.env.*
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.project
+.classpath
+.settings/
+
+# DB scripts
+*.sql.bak
+*.dump
+*.bak
+db/*.log
+db-data/
