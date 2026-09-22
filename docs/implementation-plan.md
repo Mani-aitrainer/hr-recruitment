@@ -66,13 +66,13 @@ Tooling must be in place before phase 3. See `docs/proposal.md` §13 for the ful
 | Tool | Needed from | Status on this machine |
 |---|---|---|
 | Git | P0 | installed |
-| JDK 21 + Maven 3.9+ | P4 | **JDK 11, no Maven → install** |
-| Node.js 22.12+ | P5 | **Node 16.14 → install** |
-| Docker Desktop | P3 | verify |
-| Terraform 1.10+ | P6 | 1.16.3 ✓ |
-| AWS CLI v2 + account access | P6 | verify with `aws sts get-caller-identity` |
+| JDK 21 + Maven 3.9+ | P4 | ✓ Temurin 21.0.12.1 and Maven 3.9.9, portable under `C:\Users\manik\tools` |
+| Node.js 22.12+ | P5 | **Node 16.14 → still to upgrade** |
+| Docker Desktop | P3 | ✓ server 29.5.2, running |
+| Terraform 1.10+ | P6 | ✓ 1.16.3 |
+| AWS CLI v2 + account access | P6 | ✓ installed; confirm the profile with `aws sts get-caller-identity` |
 
-Installing the toolchain is itself a task. Do it during P2, while the API design is being written.
+Only the Node.js upgrade is left, and it blocks P5 alone. New terminals pick up `JAVA_HOME` and the `PATH` entries; terminals opened before the install do not.
 
 ---
 
@@ -152,7 +152,7 @@ P0 ─▶ P1 ─┬─▶ P2 ─▶ P3 ─▶ P4 ─▶ P5 ───────
    - the exception → problem `type` → HTTP status mapping is complete
    - the test plan names the AC each test covers
 3. Resolve the agent's "Open questions" section. Update the spec if an answer changes behaviour.
-4. In parallel: install JDK 21, Maven 3.9+, Node 22 LTS, and Docker Desktop, then verify each version.
+4. In parallel, finish the toolchain: JDK 21, Maven, and Docker are in place; upgrade Node.js to 22 LTS and verify with `node -v`.
 
 **Done when**
 - [ ] `docs/api-design.md` exists with all 9 sections filled in

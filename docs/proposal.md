@@ -286,10 +286,13 @@ A root `README.md` is added with the first project, and links the four folder RE
 |---|---|---|
 | Node.js | 22.12+ or 24 LTS (check Angular 22's compatibility table) | 16.14 installed → **upgrade** |
 | Angular CLI | 22.1.8 (`npx @angular/cli@22.1.8 new ...`) | — |
-| JDK | 21 | 11 installed → **install 21** |
-| Maven | 3.9+ | not installed → **install** |
-| Terraform | ≥ 1.10 | 1.16.3 ✓ |
-| AWS CLI | v2, with a profile for the target account | verify |
+| JDK | 21 | ✓ Temurin 21.0.12.1 LTS at `C:\Users\manik\tools\jdk-21.0.12.1+1` (`JAVA_HOME` set) |
+| Maven | 3.9+ | ✓ 3.9.9 at `C:\Users\manik\tools\apache-maven-3.9.9` |
+| Docker | Desktop, running | ✓ server 29.5.2 |
+| Terraform | ≥ 1.10 | ✓ 1.16.3 |
+| AWS CLI | v2, with a profile for the target account | ✓ installed; confirm the profile with `aws sts get-caller-identity` |
+
+JDK 21 and Maven are portable installs under `C:\Users\manik\tools`, added to the user `PATH` (the previous `PATH` is saved at `C:\Users\manik\tools\user-path-backup.txt`). Only Node.js is still outstanding, and it blocks `ui/` alone.
 
 ## 14. Open questions
 
