@@ -5,8 +5,8 @@
 | Status | Draft, for review |
 | Author | Mani |
 | Date | 2026-09-22 |
-| Scope | Job posting screen only (create, edit, publish, close, list, view) |
-| Related documents | `docs/implementation-plan.md` (phases and gates), `docs/specs/job-posting.spec.md`, `docs/specs/infrastructure.spec.md`, `docs/api-design.md` (written in phase P2) |
+| Scope | v1: job posting screen only (create, edit, publish, close, list, view). v2: candidate capture form (§3.1) |
+| Related documents | `docs/implementation-plan.md` (phases and gates), `docs/specs/job-posting.spec.md`, `docs/specs/candidate.spec.md`, `docs/specs/infrastructure.spec.md`, `docs/api-design.md` (written in phase P2) |
 
 ---
 
@@ -53,12 +53,34 @@ The goal is a working, deployed, end-to-end feature. The project also serves as 
 - Unit tests for every feature, positive and negative (see §5.5), and a code review agent run
 
 ### Out of scope
-- Candidates, applications, interviews, and offers
+- Applications, interviews, and offers
+- Candidates — moved to a separate v2 module, see §3.1
 - Authentication and authorization (no login in this version; see risk R1)
 - Multi-environment promotion (test/prod) and CI/CD pipelines
 - CloudFront, a custom domain, or HTTPS on the UI (see risk R2)
 - Email notifications and job-board integrations
 - Internationalisation beyond keeping labels in one i18n file
+
+### 3.1 Next module: candidate capture (v2)
+
+A second module captures a candidate's **basic and professional information** as a standalone talent pool record. It is specified in `docs/specs/candidate.spec.md` and planned as phases C1–C4 in `docs/implementation-plan.md`. It is built **after** v1 ships, because it extends the Router, the shared Angular components, and the migration chain that phases P3–P5 create.
+
+It needs **no infrastructure change**: the same Lambda, RDS instance, Function URL, and S3 bucket serve it, so `iac/` is untouched.
+
+| # | Question | Decision |
+|---|---|---|
+| 1 | Where does it sit? | Its own spec, built after P5 |
+| 2 | Linked to job posts? | No — standalone talent pool, no FK to `job_posting` |
+| 3 | Field depth | Flat summary fields, one `candidate` table, no child tables |
+| 4 | Resume / CV | Not in v2 — keeps "file uploads" out of scope |
+| 5 | Lifecycle | `ACTIVE` / `ARCHIVED` only |
+| 6 | PII on a public URL | Synthetic data only, keep no-auth, recorded as risk R7 |
+| 7 | Duplicates | No uniqueness rule on email or phone |
+| 8 | Screens | Capture form only — no list, no detail |
+| 9 | API surface | `POST /`, `GET /{id}`, `PUT /{id}` |
+| 10 | Sensitive fields | None — no date of birth, no salary or CTC, no gender |
+
+Three consequences are accepted knowingly and written into the spec as limits: `ARCHIVED` is unreachable in v2 (no endpoint, no screen), there is no browse path so a candidate is reachable only by direct URL, and duplicates are allowed so the only `409` is `version-conflict`.
 
 ## 4. Architecture
 
@@ -269,6 +291,7 @@ Every change follows **proposal → implementation plan → spec → cross-model
 | R4 | Too many DB connections from Lambda | HikariCP pool size 2 plus reserved concurrency 5 (at most 10 connections) |
 | R5 | Local toolchain mismatch (this machine has Java 11 and Node 16) | Install JDK 21, Maven 3.9+, and Node.js 22.12+ or 24 LTS before phases 5–6 |
 | R6 | The agent builds features outside the scope | Out-of-scope list in the spec; the code-reviewer checks spec compliance |
+| R7 | **Candidate personal data on an unauthenticated public Function URL.** Names, email addresses, and phone numbers are real personal data, and R1 leaves the endpoint open to anyone who learns the URL. | Only synthetic candidate data in seed files, tests, fixtures, and demos — never a real person. No PII in log lines, returned error messages, or stack traces: validation errors name the field, never the value. No date of birth, salary, or gender is captured at all. Reserved concurrency of 5 caps scraping. **Authentication (R1) is the prerequisite for any real candidate data.** |
 
 ## 13. Prerequisites and README files
 
@@ -300,4 +323,6 @@ JDK 21 and Maven are portable installs under `C:\Users\manik\tools`, added to th
 2. ~~Which region?~~ **Decided: `us-east-1`.**
 3. Should departments be a fixed list (current plan) or a managed table?
 4. Should recruiters be able to reopen a CLOSED post? (Current plan: no.)
-5. Is it acceptable to have no authentication for the dev demo (R1)?
+5. Is it acceptable to have no authentication for the dev demo (R1)? **This now also gates real candidate data (R7), so it is no longer a demo-only question.**
+6. ~~Are candidates in scope?~~ **Decided: a separate v2 module, §3.1.**
+7. Should `noticePeriodDays` stay on the candidate form? It was not one of the sensitive fields ruled out, so it is currently kept. (Current plan: keep.)

@@ -1,0 +1,59 @@
+{
+  "candidate": {
+    "form": {
+      "titleNew": "New candidate",
+      "titleEdit": "Edit candidate",
+      "sectionBasic": "Basic information",
+      "sectionProfessional": "Professional information",
+      "fields": {
+        "fullName": "Full name",
+        "email": "Email",
+        "phone": "Phone",
+        "location": "Location",
+        "currentEmployer": "Current employer (optional)",
+        "currentTitle": "Current title (optional)",
+        "totalExperienceYears": "Total experience (years)",
+        "noticePeriodDays": "Notice period (days, optional)",
+        "highestQualification": "Highest qualification",
+        "skills": "Skills",
+        "summary": "Summary (optional)"
+      },
+      "qualifications": {
+        "HIGH_SCHOOL": "High school",
+        "DIPLOMA": "Diploma",
+        "BACHELORS": "Bachelor's degree",
+        "MASTERS": "Master's degree",
+        "DOCTORATE": "Doctorate"
+      },
+      "skillsPlaceholder": "Type a skill and press Enter or comma",
+      "skillsDuplicate": "This skill has already been added",
+      "summaryCounter": "{count} / 2000 characters",
+      "save": "Save",
+      "cancel": "Cancel",
+      "saving": "Saving…",
+      "loading": "Loading candidate…",
+      "notFound": "This candidate could not be found.",
+      "loadError": "The candidate could not be loaded. Check your connection and try again.",
+      "retry": "Retry",
+      "unsavedChangesWarning": "You have unsaved changes. Leave without saving?",
+      "successCreated": "{fullName} was saved.",
+      "versionConflictTitle": "This candidate was changed elsewhere",
+      "versionConflictMessage": "Someone else updated this candidate. Reload to see the latest version before saving again.",
+      "versionConflictReload": "Reload",
+      "errors": {
+        "required": "This field is required",
+        "fullNameLength": "Full name must be 2-100 characters",
+        "emailFormat": "Enter a valid email address",
+        "emailLength": "Email must be at most 255 characters",
+        "phoneFormat": "Phone must be 8-20 characters: digits, spaces, hyphens, and an optional leading +",
+        "locationLength": "Location must be 2-100 characters",
+        "optionalTextLength": "Must be 2-100 characters when provided",
+        "experienceRange": "Must be between 0 and 40",
+        "noticePeriodRange": "Must be between 0 and 180",
+        "skillsCount": "Add between 1 and 15 skills",
+        "skillLength": "Each skill must be 1-30 characters",
+        "summaryLength": "Summary must be at most 2000 characters"
+      }
+    }
+  }
+}

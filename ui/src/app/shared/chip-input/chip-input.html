@@ -1,0 +1,28 @@
+<div class="chip-input" role="group">
+  @for (chip of chips(); track chip; let i = $index) {
+    <span class="chip">
+      {{ chip }}
+      <button
+        type="button"
+        class="chip-remove"
+        [attr.aria-label]="'Remove ' + chip"
+        (click)="removeChip(i)"
+      >
+        ×
+      </button>
+    </span>
+  }
+  <input
+    type="text"
+    [id]="inputId()"
+    [attr.aria-describedby]="describedBy()"
+    [placeholder]="placeholder()"
+    [ngModel]="draft()"
+    (ngModelChange)="draft.set($event)"
+    (keydown)="onKeydown($event)"
+    (blur)="onBlur()"
+  />
+</div>
+@if (hasDuplicateError()) {
+  <p class="chip-input-error" role="alert">{{ duplicateMessage() }}</p>
+}

@@ -2,11 +2,11 @@
 
 | | |
 |---|---|
-| Status | Draft, phases 0–1 partly done |
+| Status | Draft, phases 0–1 partly done. Candidate module (C1–C4) built and reviewed, out of the documented dependency order — see §4b. |
 | Source | `docs/proposal.md` |
-| Specs | `docs/specs/job-posting.spec.md`, `docs/specs/infrastructure.spec.md` |
-| Target | A deployed job posting screen in AWS `us-east-1`, with every acceptance criterion covered by a test |
-| Last updated | 2026-09-22 |
+| Specs | `docs/specs/job-posting.spec.md`, `docs/specs/candidate.spec.md`, `docs/specs/infrastructure.spec.md` |
+| Target | A deployed job posting screen in AWS `us-east-1`, with every acceptance criterion covered by a test. Then the candidate capture form (C1–C4). |
+| Last updated | 2026-09-23 |
 
 ---
 
@@ -91,10 +91,16 @@ Only the Node.js upgrade is left, and it blocks P5 alone. New terminals pick up 
 | P8 | Deploy to AWS and run migrations | P5, P7 | a running environment | 0.5 day |
 | P9 | End-to-end verification against the ACs | P8 | a verification report | 0.5 day |
 | P10 | Review and hardening | P9 | review findings fixed | 0.5 day |
+| C1 | Candidate: database migration V2 | P10 | `db/migrations/V2__create_candidate.sql` | 0.25 day |
+| C2 | Candidate: Java API (3 endpoints) | C1 | `api/…/candidate/` and tests | 1 day |
+| C3 | Candidate: Angular capture form | C2 | `ui/…/features/candidate/` and tests | 1 day |
+| C4 | Candidate: review | C3 | review findings fixed | 0.25 day |
 
 ```
 P0 ─▶ P1 ─┬─▶ P2 ─▶ P3 ─▶ P4 ─▶ P5 ──────────┬─▶ P8 ─▶ P9 ─▶ P10
-          └─▶ P6 ──────────────▶ P7 ─────────┘
+          └─▶ P6 ──────────────▶ P7 ─────────┘                 │
+                                                               ▼
+                                              C1 ─▶ C2 ─▶ C3 ─▶ C4
 ```
 
 ---
@@ -348,6 +354,108 @@ P0 ─▶ P1 ─┬─▶ P2 ─▶ P3 ─▶ P4 ─▶ P5 ───────
 
 ---
 
+## 4b. Candidate capture module (v2)
+
+Spec: `docs/specs/candidate.spec.md` · Decisions: `docs/proposal.md` §3.1 · Risk: R7
+
+The §1 **README rule** and **test rule** apply to C1–C3 exactly as they do to P3–P5, with one difference: `db/README.md`, `api/README.md`, and `ui/README.md` already exist from the job posting phases, so these phases **update** them instead of creating them.
+
+**No infrastructure change.** The same Lambda, RDS instance, Function URL, and S3 bucket serve this module, so `iac/` is untouched and no Terraform gate applies.
+
+**Built out of order.** C1–C4 were implemented and reviewed before P3–P10 (job posting), at the user's explicit request. Because nothing existed yet, C1's migration became `V1` (not `V2` on top of a job-posting `V1`), and C2 built the minimal shared `common/` layer (Router, ProblemDetail, Json, DataSourceFactory) that P4 should now **reuse, not duplicate**, when job posting is implemented. The candidate migration keeps its `V1` filename even after job posting adds its own first migration — migration order across features is managed by version number at that time, not renamed retroactively (`.claude/rules/sql-migrations.md`: never edit an applied migration).
+
+---
+
+### C1 · Candidate database migration
+
+**Goal.** A `candidate` table that enforces the spec.
+
+**Depends on.** P10
+
+**Steps**
+1. Use the `db-migration` skill. It reads the field tables from `docs/specs/candidate.spec.md`.
+2. Write `db/migrations/V2__create_candidate.sql`: table `candidate` (singular, snake_case), `CHECK` constraints for every enum and range, `status` constrained to `ACTIVE`/`ARCHIVED` and defaulting to `ACTIVE`, `deleted_at` for soft delete, and `version integer`.
+3. Do not touch `V1__create_job_posting.sql` — it is already applied (`.claude/rules/sql-migrations.md`).
+4. Apply to an empty PostgreSQL 17 container, then drop and recreate and apply again.
+5. Prove the constraints: one valid insert that succeeds, then one rejected insert per constraint — `full_name` of 1 char, `email` over 255, `total_experience_years` of 41, `notice_period_days` of 181, unknown `highest_qualification`, empty and 16-item `skills`, `summary` over 2000, unknown `status`.
+6. Optionally add `db/seed/dev_candidates.sql`. **Synthetic names, emails, and phone numbers only (R7).**
+7. **Update `db/README.md`** with the candidate migration steps.
+
+**Done when**
+- [ ] `V2` applies cleanly on top of `V1` and on an empty database
+- [ ] Every spec rule that can be a constraint is one, proven by a valid insert **and** a rejected insert per constraint
+- [ ] No real personal data appears in any migration or seed file
+- [ ] `db/README.md` is updated and its steps have been run as written
+
+---
+
+### C2 · Candidate Java API
+
+**Goal.** `POST /`, `GET /{id}`, and `PUT /{id}` working locally against the Docker database.
+
+**Depends on.** C1
+
+**Steps**
+1. Use the `java-lambda-endpoint` skill for each endpoint, in this order: `POST`, `GET /{id}`, `PUT`.
+2. Create `api/src/main/java/com/hr/recruitment/candidate/`: `CandidateController`, `CandidateService`, `CandidateRepository`, `dto/`, `model/`, following the Handler → Router → Controller → Service → Repository layering.
+3. Register the three routes on the existing `common/Router` at `/api/v1/candidates`. Reuse `common/ProblemDetail`, the JSON setup, request logging, and the `DataSource` factory — do not copy them.
+4. Enforce optimistic locking in the repository, matching the job posting pattern. Guard the `ARCHIVED` transition in the service even though no v2 request can reach it.
+5. Prepared statements only. **Never log `fullName`, `email`, `phone`, `summary`, or `currentEmployer`, and never echo a rejected value back in an error message (R7).**
+6. Tests, positive and negative for every endpoint (the test rule, §1): each field rule and both sides of each boundary, unknown id → `404`, stale `version` → `409 version-conflict`, malformed JSON → `400`. Testcontainers `*IT` tests applying `db/migrations`.
+7. Run `mvn -q verify`, then exercise the API with curl, including one failing request to confirm the problem+json shape.
+8. **Update `api/README.md`** with the candidate endpoints.
+
+**Done when**
+- [ ] `mvn -q verify` passes, with Docker running
+- [ ] CAND-1, 4, 5, 6, 7, 8 each have a passing test named after the criterion
+- [ ] No SQL built by string concatenation, and no PII in logs, error messages, or stack traces
+- [ ] `api/README.md` is updated and its steps have been run as written
+
+---
+
+### C3 · Candidate Angular capture form
+
+**Goal.** The capture form working against the local API, in both new and edit mode.
+
+**Depends on.** C2
+
+**Steps**
+1. Create `ui/src/app/features/candidate/`: `candidate.routes.ts` (lazy), `data/candidate.model.ts`, `data/candidate.service.ts`, and the `form/` component. Routes `/candidates/new` and `/candidates/:id/edit`.
+2. Reuse the shared chip input built for job posting skills — the `skills` rule is identical. Do not fork it.
+3. Copy the validation rules from the spec's field tables exactly. Lay the form out as two `fieldset`s, Basic and Professional, and mark optional fields in the label.
+4. Map `400` problem+json `errors[].field` onto form controls, and handle `409 version-conflict` with a reload prompt.
+5. New mode saves, confirms, and resets. Edit mode loads by id, prefills, sends the loaded `version`, and shows a not-found message on `404`.
+6. Tests, positive and negative for the component and the service (the test rule, §1), each named after its `CAND-` criterion.
+7. Run `npm run lint`, `npm test -- --watch=false`, and `npm run build`. Click through both modes against the local API, including one invalid submission and a keyboard-only pass.
+8. **Update `ui/README.md`** with the candidate routes.
+
+**Done when**
+- [ ] Lint, tests, and build pass
+- [ ] CAND-1, 2, 3, 5, 6, 7, 8 each have a passing test
+- [ ] Every label comes from the i18n file, and no API URL is hard-coded
+- [ ] Keyboard-only use works, each input has a label, and both sections use `fieldset`/`legend`
+- [ ] `ui/README.md` is updated and its steps have been run as written
+
+---
+
+### C4 · Candidate review
+
+**Goal.** No Critical or High findings, and no personal data anywhere it should not be.
+
+**Depends on.** C3
+
+**Steps**
+1. Run the `code-reviewer` agent across the candidate diff and fix everything Critical and High.
+2. Grep the whole diff for PII reaching logs, error messages, seed files, or test fixtures.
+3. Confirm the spec and the code agree on every field rule, and that nothing from the spec's "Out of scope" list was built.
+
+**Done when**
+- [ ] No Critical or High findings remain open
+- [ ] Only synthetic candidate data exists in the repository (R7)
+- [ ] `iac/` is unchanged
+
+---
+
 ## 5. Tracking
 
 | Phase | Owner | Status | Notes |
@@ -363,6 +471,10 @@ P0 ─▶ P1 ─┬─▶ P2 ─▶ P3 ─▶ P4 ─▶ P5 ───────
 | P8 Deploy | | not started | A human applies |
 | P9 Verification | | not started | |
 | P10 Review | | not started | |
+| C1 Candidate migration | | done | Built as `V1` (job posting was never implemented, so no `V1`/`V2` conflict). 16/16 constraints proven in `db/checks.sql`. |
+| C2 Candidate API | | done | POST, GET/{id}, PUT/{id}. 24/24 tests pass; Testcontainers IT written but could not run in this sandbox (no Docker API access) — needs a normal terminal. |
+| C3 Candidate form | | done | Capture form only, no list or detail. 23/23 tests pass. Required installing a portable Node 22.23.2 (system Node was 16.14). |
+| C4 Candidate review | | done | `code-reviewer` agent found 4 High, 6 Medium, 7 Low findings. All fixed (one Medium — the constraint-proof gap in `db/checks.sql` — was already resolved before the review ran). |
 
 ## 6. Decisions log
 
@@ -371,5 +483,14 @@ P0 ─▶ P1 ─┬─▶ P2 ─▶ P3 ─▶ P4 ─▶ P5 ───────
 | 2026-09-22 | Region is `us-east-1` | proposal §5.4 |
 | 2026-09-22 | READMEs are written during implementation, not up front | CLAUDE.md, proposal §13 |
 | 2026-09-22 | Every behaviour needs a positive **and** a negative unit test | plan §1, proposal §5.5 |
+| 2026-09-23 | Candidates become a v2 module with their own spec, built after P10 | proposal §3.1, `docs/specs/candidate.spec.md` |
+| 2026-09-23 | A candidate is a standalone talent pool record — no link to `job_posting` | candidate spec, Out of scope |
+| 2026-09-23 | Flat summary fields, one `candidate` table, no child tables | candidate spec, Fields |
+| 2026-09-23 | No resume or file upload, and no date of birth, salary, or gender | candidate spec, Out of scope |
+| 2026-09-23 | Candidate lifecycle is `ACTIVE`/`ARCHIVED`; `ARCHIVED` is unreachable in v2 | candidate spec, Status lifecycle |
+| 2026-09-23 | No uniqueness on candidate email or phone — duplicates allowed | candidate spec, Known limits |
+| 2026-09-23 | Capture form only; API is `POST`, `GET /{id}`, `PUT /{id}` | candidate spec, API contract |
+| 2026-09-23 | Synthetic candidate data only, no-auth kept, logged as risk R7 | proposal §12 R7 |
 | | Plain Java or Spring Boot | open, proposal §14.1 |
-| | Authentication for the demo | open, proposal §14.5 |
+| | Authentication for the demo — now also gates real candidate data (R7) | open, proposal §14.5 |
+| | Keep `noticePeriodDays` on the candidate form | open, proposal §14.7 |

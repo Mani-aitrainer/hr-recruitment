@@ -1,0 +1,230 @@
+@if (loadState() === 'loading') {
+  <p role="status">{{ i18n.t('candidate.form.loading') }}</p>
+} @else if (loadState() === 'not-found') {
+  <p role="alert">{{ i18n.t('candidate.form.notFound') }}</p>
+} @else if (loadState() === 'error') {
+  <p role="alert">{{ i18n.t('candidate.form.loadError') }}</p>
+  <button type="button" (click)="retry()">{{ i18n.t('candidate.form.retry') }}</button>
+} @else {
+  <h1>{{ isEditMode() ? i18n.t('candidate.form.titleEdit') : i18n.t('candidate.form.titleNew') }}</h1>
+
+  @if (saveState() === 'saved' && !isEditMode() && savedCandidateName()) {
+    <p role="status">{{ i18n.t('candidate.form.successCreated', { fullName: savedCandidateName()! }) }}</p>
+  }
+
+  @if (saveState() === 'version-conflict') {
+    <div role="alert" class="version-conflict">
+      <p><strong>{{ i18n.t('candidate.form.versionConflictTitle') }}</strong></p>
+      <p>{{ i18n.t('candidate.form.versionConflictMessage') }}</p>
+      <button type="button" (click)="reloadForVersionConflict()">
+        {{ i18n.t('candidate.form.versionConflictReload') }}
+      </button>
+    </div>
+  }
+
+  <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <fieldset>
+      <legend>{{ i18n.t('candidate.form.sectionBasic') }}</legend>
+
+      <div class="field">
+        <label for="fullName">{{ i18n.t('candidate.form.fields.fullName') }}</label>
+        <input id="fullName" type="text" formControlName="fullName" aria-describedby="fullName-error" />
+        @if (form.controls.fullName.invalid && form.controls.fullName.touched) {
+          <p id="fullName-error" class="error" role="alert">
+            @if (form.controls.fullName.hasError('required')) {
+              {{ i18n.t('candidate.form.errors.required') }}
+            } @else if (form.controls.fullName.hasError('server')) {
+              {{ form.controls.fullName.getError('server') }}
+            } @else {
+              {{ i18n.t('candidate.form.errors.fullNameLength') }}
+            }
+          </p>
+        }
+      </div>
+
+      <div class="field">
+        <label for="email">{{ i18n.t('candidate.form.fields.email') }}</label>
+        <input id="email" type="email" formControlName="email" aria-describedby="email-error" />
+        @if (form.controls.email.invalid && form.controls.email.touched) {
+          <p id="email-error" class="error" role="alert">
+            @if (form.controls.email.hasError('required')) {
+              {{ i18n.t('candidate.form.errors.required') }}
+            } @else if (form.controls.email.hasError('maxlength')) {
+              {{ i18n.t('candidate.form.errors.emailLength') }}
+            } @else if (form.controls.email.hasError('server')) {
+              {{ form.controls.email.getError('server') }}
+            } @else {
+              {{ i18n.t('candidate.form.errors.emailFormat') }}
+            }
+          </p>
+        }
+      </div>
+
+      <div class="field">
+        <label for="phone">{{ i18n.t('candidate.form.fields.phone') }}</label>
+        <input id="phone" type="tel" formControlName="phone" aria-describedby="phone-error" />
+        @if (form.controls.phone.invalid && form.controls.phone.touched) {
+          <p id="phone-error" class="error" role="alert">
+            @if (form.controls.phone.hasError('required')) {
+              {{ i18n.t('candidate.form.errors.required') }}
+            } @else if (form.controls.phone.hasError('server')) {
+              {{ form.controls.phone.getError('server') }}
+            } @else {
+              {{ i18n.t('candidate.form.errors.phoneFormat') }}
+            }
+          </p>
+        }
+      </div>
+
+      <div class="field">
+        <label for="location">{{ i18n.t('candidate.form.fields.location') }}</label>
+        <input id="location" type="text" formControlName="location" aria-describedby="location-error" />
+        @if (form.controls.location.invalid && form.controls.location.touched) {
+          <p id="location-error" class="error" role="alert">
+            @if (form.controls.location.hasError('required')) {
+              {{ i18n.t('candidate.form.errors.required') }}
+            } @else if (form.controls.location.hasError('server')) {
+              {{ form.controls.location.getError('server') }}
+            } @else {
+              {{ i18n.t('candidate.form.errors.locationLength') }}
+            }
+          </p>
+        }
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>{{ i18n.t('candidate.form.sectionProfessional') }}</legend>
+
+      <div class="field">
+        <label for="currentEmployer">{{ i18n.t('candidate.form.fields.currentEmployer') }}</label>
+        <input id="currentEmployer" type="text" formControlName="currentEmployer" aria-describedby="currentEmployer-error" />
+        @if (form.controls.currentEmployer.invalid && form.controls.currentEmployer.touched) {
+          <p id="currentEmployer-error" class="error" role="alert">
+            @if (form.controls.currentEmployer.hasError('server')) {
+              {{ form.controls.currentEmployer.getError('server') }}
+            } @else {
+              {{ i18n.t('candidate.form.errors.optionalTextLength') }}
+            }
+          </p>
+        }
+      </div>
+
+      <div class="field">
+        <label for="currentTitle">{{ i18n.t('candidate.form.fields.currentTitle') }}</label>
+        <input id="currentTitle" type="text" formControlName="currentTitle" aria-describedby="currentTitle-error" />
+        @if (form.controls.currentTitle.invalid && form.controls.currentTitle.touched) {
+          <p id="currentTitle-error" class="error" role="alert">
+            @if (form.controls.currentTitle.hasError('server')) {
+              {{ form.controls.currentTitle.getError('server') }}
+            } @else {
+              {{ i18n.t('candidate.form.errors.optionalTextLength') }}
+            }
+          </p>
+        }
+      </div>
+
+      <div class="field">
+        <label for="totalExperienceYears">{{ i18n.t('candidate.form.fields.totalExperienceYears') }}</label>
+        <input
+          id="totalExperienceYears"
+          type="number"
+          formControlName="totalExperienceYears"
+          aria-describedby="totalExperienceYears-error"
+        />
+        @if (form.controls.totalExperienceYears.invalid && form.controls.totalExperienceYears.touched) {
+          <p id="totalExperienceYears-error" class="error" role="alert">
+            @if (form.controls.totalExperienceYears.hasError('required')) {
+              {{ i18n.t('candidate.form.errors.required') }}
+            } @else if (form.controls.totalExperienceYears.hasError('server')) {
+              {{ form.controls.totalExperienceYears.getError('server') }}
+            } @else {
+              {{ i18n.t('candidate.form.errors.experienceRange') }}
+            }
+          </p>
+        }
+      </div>
+
+      <div class="field">
+        <label for="noticePeriodDays">{{ i18n.t('candidate.form.fields.noticePeriodDays') }}</label>
+        <input
+          id="noticePeriodDays"
+          type="number"
+          formControlName="noticePeriodDays"
+          aria-describedby="noticePeriodDays-error"
+        />
+        @if (form.controls.noticePeriodDays.invalid && form.controls.noticePeriodDays.touched) {
+          <p id="noticePeriodDays-error" class="error" role="alert">
+            @if (form.controls.noticePeriodDays.hasError('server')) {
+              {{ form.controls.noticePeriodDays.getError('server') }}
+            } @else {
+              {{ i18n.t('candidate.form.errors.noticePeriodRange') }}
+            }
+          </p>
+        }
+      </div>
+
+      <div class="field">
+        <label for="highestQualification">{{ i18n.t('candidate.form.fields.highestQualification') }}</label>
+        <select id="highestQualification" formControlName="highestQualification" aria-describedby="highestQualification-error">
+          <option value="" disabled>—</option>
+          @for (q of qualifications; track q) {
+            <option [value]="q">{{ i18n.t('candidate.form.qualifications.' + q) }}</option>
+          }
+        </select>
+        @if (form.controls.highestQualification.invalid && form.controls.highestQualification.touched) {
+          <p id="highestQualification-error" class="error" role="alert">
+            @if (form.controls.highestQualification.hasError('server')) {
+              {{ form.controls.highestQualification.getError('server') }}
+            } @else {
+              {{ i18n.t('candidate.form.errors.required') }}
+            }
+          </p>
+        }
+      </div>
+
+      <div class="field">
+        <label for="skills">{{ i18n.t('candidate.form.fields.skills') }}</label>
+        <app-chip-input
+          inputId="skills"
+          describedBy="skills-error"
+          [chips]="form.controls.skills.value"
+          [placeholder]="i18n.t('candidate.form.skillsPlaceholder')"
+          [duplicateMessage]="i18n.t('candidate.form.skillsDuplicate')"
+          (chipsChange)="onSkillsChange($event)"
+        />
+        @if (form.controls.skills.invalid && form.controls.skills.touched) {
+          <p id="skills-error" class="error" role="alert">
+            @if (form.controls.skills.hasError('server')) {
+              {{ form.controls.skills.getError('server') }}
+            } @else {
+              {{ i18n.t('candidate.form.errors.skillsCount') }}
+            }
+          </p>
+        }
+      </div>
+
+      <div class="field">
+        <label for="summary">{{ i18n.t('candidate.form.fields.summary') }}</label>
+        <textarea id="summary" formControlName="summary" aria-describedby="summary-error summary-counter" rows="4"></textarea>
+        <p id="summary-counter">{{ i18n.t('candidate.form.summaryCounter', { count: summaryLength() }) }}</p>
+        @if (form.controls.summary.invalid && form.controls.summary.touched) {
+          <p id="summary-error" class="error" role="alert">
+            @if (form.controls.summary.hasError('server')) {
+              {{ form.controls.summary.getError('server') }}
+            } @else {
+              {{ i18n.t('candidate.form.errors.summaryLength') }}
+            }
+          </p>
+        }
+      </div>
+    </fieldset>
+
+    <div class="actions">
+      <button type="submit" [disabled]="saveState() === 'saving'">
+        {{ saveState() === 'saving' ? i18n.t('candidate.form.saving') : i18n.t('candidate.form.save') }}
+      </button>
+      <button type="button" (click)="cancel()">{{ i18n.t('candidate.form.cancel') }}</button>
+    </div>
+  </form>
+}

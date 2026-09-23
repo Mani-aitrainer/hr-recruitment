@@ -1,0 +1,62 @@
+:host {
+  display: block;
+  max-width: 40rem;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+fieldset {
+  border: 1px solid #d0d0d0;
+  border-radius: 6px;
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+}
+
+legend {
+  font-weight: 600;
+  padding: 0 0.4rem;
+}
+
+.field {
+  margin-bottom: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+label {
+  font-weight: 500;
+}
+
+input,
+select,
+textarea {
+  font: inherit;
+  padding: 0.5rem;
+  border: 1px solid #b0b0b0;
+  border-radius: 4px;
+}
+
+.error {
+  color: #b3261e;
+  font-size: 0.8rem;
+  margin: 0;
+}
+
+.version-conflict {
+  border: 1px solid #b3261e;
+  border-radius: 6px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+#summary-counter {
+  font-size: 0.75rem;
+  color: #666;
+  margin: 0;
+}
